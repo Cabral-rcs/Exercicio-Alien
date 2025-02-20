@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercício do Alien</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style> body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; } </style>
+</head>
+
+<body>
+    <script>
+        // o que acontece aqui? R: Defino variáveis que guardam a altura e largura da tela de jogo
+        const larguraJogo = 700;
+        const alturaJogo = 850;
+
+        // o que essa parte faz? R: Estabeleço as configurações do jogo e usando phaser.
+        const config = {
+            type: Phaser.AUTO,
+            width: larguraJogo,
+            height: alturaJogo,
+
+            physics: {
+                default: 'arcade',
+                arcade:{
+                    gravity: {y : 300},
+                    
+                }
+
+            },
+
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        // o que acontece aqui? R: Inicia uma nova constante que guardará o jogo e atribui com o phaser as configurações já estabelecidas.
+        const game = new Phaser.Game(config);
+        var alien; // Declaro uma variável para o personagem principal
+        var teclado; // Declaro uma variável para inputar comandos do teclado
+        var fogo; // Declaro uma variável para o fogo da nave
+        var plataforma; // Declaro uma variável para o plataforma qeu ficará na tela
+        var moeda; // Declaro uma variável para o moeda
+        var pontuacao = -1; // Declaro uma variável para o pontuação 
+        var placar; // Declaro uma variável para o placar
+        var cogumelo; // Declaro uma variável para o cogumelo
+        var lista = [0.3, 0.5, 0.8, 1.4, 1.7, 2.0]; // Uma lista que guarda possíveis tamanhos para o Alien
+        var arvore; // Declaro uma variável para a arvore
+        
+
+        function preload() {
+            this.load.image('background', 'assets/bg.png'); // Carrego o background no sistema
+            this.load.image('player', 'assets/alienigena.png'); // Carrego o alien no sistema
+            this.load.image('turbo_nave', 'assets/turbo.png'); // Carrego o fogo no sistema
+            this.load.image('plataforma', 'assets/tijolos.png'); // Carrego a plataforma no sistema
+            this.load.image('moeda', 'assets/moeda.png'); // Carrego a moeda no sistema
+            this.load.image('cogumelo', 'assets/Cogumelo.png'); // Carrego a nuvem no sistema
+            this.load.image('arvore', 'assets/arvore.png');
+        }
+
+        function create() {
+            function cresce(){ // Crio uma função para que o Alian cresça quando tocar no cogumelo
+                indice = Phaser.Math.RND.between(0,5) // Crio uma variável que recebe um valor aleatório entre 0 e 5
+                tamanho = lista[indice]; // Crio outra variável que guardará o novo tamanho do Alien de acordo com a posição dentro da lista
+                return(tamanho);  // Função retorna o novo tamanho do Alien
+            }
+            // o que acontece aqui? R: Adiciono o background no centro da tela de jogo
+            this.add.image(larguraJogo/2, alturaJogo/2, 'background');
+
+            fogo = this.add.sprite(0, 0, 'turbo_nave'); // Adiciono o fogo na tela 
+            fogo.setVisible(false); // Estabeleço que o fogo não fique visível tela por enquanto
+
+            alien = this.physics.add.sprite(larguraJogo/2, 0, 'player'); // Adiciono o alien na tela 
+            alien.setCollideWorldBounds(true); // Defino os limites da tela para que o alien não ultrapasse
+
+            arvore = this.physics.add.staticImage(larguraJogo - 200, alturaJogo - 100,'arvore'); // Adiciono Árvore
+            this.physics.add.collider(alien,arvore); //Crio colisão entre Alien e árvore
+            
+            
+
+            teclado = this.input.keyboard.createCursorKeys(); // Recebo informações do usuário pelo teclado
+
+            plataforma = this.physics.add.staticImage(larguraJogo/2, alturaJogo/2, 'plataforma'); // Adiciono a plataforma na tela com Física e de maneira estática
+            this.physics.add.collider(alien, plataforma); // Adiciono colisão entre o Alien e a plataforma
+
+            cogumelo = this.physics.add.staticImage(150, 800, 'cogumelo'); // Adiciono a plataforma na tela com Física e de maneira estática
+            this.physics.add.overlap(cogumelo, alien, function(){ // Crio uma relação de contato entre o Alien e o cogumelo e uma série de comandos a serem execudados 
+                escala = cresce(); // Crio uma variável para guardar o valor retornado pela função que define o novo tamanho do Alien
+                    setTimeout(function(){ // Crio uma função anônima dentro de um SetTimeout para que haja uma espera entre a mudança de tamanho durante o contato entre Alien e cogumelo
+                        alien.setScale(escala); // Muda a escala do Alien
+                        fogo.setScale(escala); // Muda a escala do cogumelo
+                    }, 1500); 
+            });
+
+            moeda = this.physics.add.sprite(larguraJogo/2, 0, 'moeda'); //Adiciono a moeda na tela 
+            moeda.setCollideWorldBounds(true); // Defino os limites da tela para que o moeda não ultrapasse
+            moeda.setBounce(0.5); // Defino o 'Rebote' da moeda 
+            this.physics.add.collider(moeda, plataforma); // Adiciono colisão entre moeda e plataforma
+            
+            teclado = this.input.keyboard.createCursorKeys(); // Recebo informações do usuário pelo teclado
+
+            placar = this.add.text(50, 50, 'Moedas:' + pontuacao, {fontSize:'45px', fill:'#495613'}); // Adiciono um texto que imprime o placar que será atualizado em 'Update'
+
+            this.physics.add.overlap(alien, moeda, function(){ // Adiciono o overlap entre o Alien e a moeda, fazendo com que ele passe por cima dela
+                moeda.setVisible(false); // Depois que o alien passa por cima, ela deixa de ficar visível
+                var posicaoMoeda_Y = Phaser.Math.RND.between(50, 650); // A posição da moeda no eixo y é trocado de maneira aleatória
+                moeda.setPosition(posicaoMoeda_Y, 100);
+                pontuacao +=1; // Aumento na pontuação
+                placar.setText('Moedas: ' + pontuacao); // Imprime a nova pontuação no placar
+                moeda.setVisible(true); // Deixa a nova moeda visível. 
+                alien.setScale(1.0); // Volto ao tamanho normal do alien
+                fogo.setScale(1.0); // Volto ao tamanho normal do fogo
+    
+            });
+
+            this.physics.add.collider(moeda,arvore); //Crio colisão entre Moeda e árvore
+
+
+        }
+
+        function update() {
+
+
+            // Movimento para a esquerda
+            if (teclado.left.isDown){
+                alien.setVelocityX(-150);
+            // Movimento para a direita
+            } else if (teclado.right.isDown){
+                alien.setVelocityX(150);
+            // Sem movimento
+            } else {
+                alien.setVelocityX(0);
+            } // Movimento de subida mais ativação do fogo
+            if (teclado.up.isDown){
+                alien.setVelocityY(-150);
+                ativar_turbo();
+            } else{ // Movimento de queda pela gravidade e fogo fica invisível.
+                desativar_turbo();
+            }
+
+            fogo.setPosition(alien.x, alien.y + alien.height/2); // Defino a posição do fogo atrás dp alien
+ 
+            function ativar_turbo(){ // Defino uma função que deixa o fogo visível
+                fogo.setVisible(true);
+            };
+            function desativar_turbo(){ // Defino uma função que deixa o fogo invisível
+                fogo.setVisible(false);
+            };
+            
+
+        }
+    </script>
+</body>
+</html>
